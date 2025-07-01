@@ -28,6 +28,7 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         self.tree = QtWidgets.QTreeWidget()
         self.tree.setHeaderHidden(True)
         self.tree.setExpandsOnDoubleClick(False)
+        self.tree.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.tree.itemDoubleClicked.connect(self._on_double_click)
         self.tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
@@ -40,8 +41,11 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
     # ------------------------------------------------------------------
     def _populate_tree(self):
         self.tree.clear()
-        self._build_tree(self.tree.invisibleRootItem(), self.start_ea, set())
-        self.tree.expandAll()
+        root = self._build_tree(self.tree.invisibleRootItem(), self.start_ea, set())
+        if root is not None:
+            root.setExpanded(True)
+            for i in range(root.childCount()):
+                root.child(i).setExpanded(True)
 
     # ------------------------------------------------------------------
     def _build_tree(self, parent, ea, visited):
@@ -49,10 +53,11 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         item = QtWidgets.QTreeWidgetItem(parent, [name])
         item.setData(0, QtCore.Qt.UserRole, ea)
         if ea in visited:
-            return
+            return item
         visited.add(ea)
         for child_ea in self._get_called_functions(ea):
             self._build_tree(item, child_ea, visited)
+        return item
 
     # ------------------------------------------------------------------
     @staticmethod
@@ -80,11 +85,19 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         menu = QtWidgets.QMenu(self.tree)
         act_rename = menu.addAction("Rename variables")
         act_rename_children = menu.addAction("Rename variables With Children")
+        menu.addSeparator()
+        act_collapse = menu.addAction("Collapse")
+        act_uncollapse = menu.addAction("Uncollapse")
         action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
-        if action == act_rename:
-            self._rename_item(item, recurse=False)
-        elif action == act_rename_children:
-            self._rename_item(item, recurse=True)
+        if action == act_rename or action == act_rename_children:
+            selected = self.tree.selectedItems()
+            targets = selected if selected else [item]
+            for sel in targets:
+                self._rename_item(sel, recurse=action == act_rename_children)
+        elif action == act_collapse:
+            item.setExpanded(False)
+        elif action == act_uncollapse:
+            item.setExpanded(True)
         self._populate_tree()
 
     # ------------------------------------------------------------------
