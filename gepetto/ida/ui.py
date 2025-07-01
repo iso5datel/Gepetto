@@ -8,7 +8,7 @@ import ida_hexrays
 import ida_kernwin
 
 import gepetto.config
-from gepetto.ida.handlers import ExplainHandler, RenameHandler, SwapModelHandler, GenerateCCodeHandler, GeneratePythonCodeHandler
+from gepetto.ida.handlers import ExplainHandler, RenameHandler, RenameAllHandler, SwapModelHandler, GenerateCCodeHandler, GeneratePythonCodeHandler
 from gepetto.ida.cli import register_cli
 import gepetto.models.model_manager
 
@@ -25,6 +25,8 @@ class GepettoPlugin(idaapi.plugin_t):
     explain_menu_path = "Edit/Gepetto/" + _("Explain function")
     rename_action_name = "gepetto:rename_function"
     rename_menu_path = "Edit/Gepetto/" + _("Rename variables")
+    rename_all_action_name = "gepetto:rename_all_functions"
+    rename_all_menu_path = "Edit/Gepetto/" + _("Rename variables (all functions)")
     c_code_action_name = "gepetto:generate_c_code"
     c_code_menu_path = "Edit/Gepetto/" + _("Generate C Code")
     python_code_action_name = "gepetto:generate_python_code"
@@ -66,6 +68,19 @@ class GepettoPlugin(idaapi.plugin_t):
                                              19)
         idaapi.register_action(rename_action)
 
+        # Variable renaming action for all functions
+        rename_all_action = idaapi.action_desc_t(
+            self.rename_all_action_name,
+            _('Rename variables (all functions)'),
+            RenameAllHandler(),
+            "Ctrl+Alt+Shift+R",
+            _("Rename variables in all functions using {model}").format(
+                model=str(gepetto.config.model)
+            ),
+            19
+        )
+        idaapi.register_action(rename_all_action)
+
         # Generate Python Code action
         generate_python_code_action = idaapi.action_desc_t(
             self.python_code_action_name,
@@ -94,6 +109,7 @@ class GepettoPlugin(idaapi.plugin_t):
 
         idaapi.attach_action_to_menu(self.explain_menu_path, self.explain_action_name, idaapi.SETMENU_APP)
         idaapi.attach_action_to_menu(self.rename_menu_path, self.rename_action_name, idaapi.SETMENU_APP)
+        idaapi.attach_action_to_menu(self.rename_all_menu_path, self.rename_all_action_name, idaapi.SETMENU_APP)
         idaapi.attach_action_to_menu(self.c_code_menu_path, self.c_code_action_name, idaapi.SETMENU_APP)
         idaapi.attach_action_to_menu(self.python_code_menu_path, self.python_code_action_name, idaapi.SETMENU_APP)
 
@@ -185,6 +201,7 @@ class ContextMenuHooks(idaapi.UI_Hooks):
         if idaapi.get_widget_type(form) == idaapi.BWN_PSEUDOCODE:
             idaapi.attach_action_to_popup(form, popup, GepettoPlugin.explain_action_name, "Gepetto/")
             idaapi.attach_action_to_popup(form, popup, GepettoPlugin.rename_action_name, "Gepetto/")
+            idaapi.attach_action_to_popup(form, popup, GepettoPlugin.rename_all_action_name, "Gepetto/")
             idaapi.attach_action_to_popup(form, popup, GepettoPlugin.c_code_action_name, "Gepetto/")
             idaapi.attach_action_to_popup(form, popup, GepettoPlugin.python_code_action_name, "Gepetto/")
 

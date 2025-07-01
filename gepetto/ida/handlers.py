@@ -7,6 +7,7 @@ import textwrap
 import idaapi
 import ida_hexrays
 import idc
+import idautils
 
 import gepetto.config
 from gepetto.models.model_manager import instantiate_model
@@ -153,6 +154,56 @@ class RenameHandler(idaapi.action_handler_t):
         return 1
 
     # This action is always available.
+    def update(self, ctx):
+        return idaapi.AST_ENABLE_ALWAYS
+
+
+# -----------------------------------------------------------------------------
+
+class RenameAllHandler(idaapi.action_handler_t):
+    """Request better variable names for every function in the program."""
+
+    def __init__(self):
+        idaapi.action_handler_t.__init__(self)
+        self.functions = []
+
+    def activate(self, ctx):
+        self.functions = list(idautils.Functions())
+        self.total = len(self.functions)
+        self.current = 0
+        print(_("Starting variable renaming for {count} functions...").format(count=self.total))
+        self._rename_next()
+        return 1
+
+    def _rename_next(self):
+        if not self.functions:
+            print(_("Finished renaming variables for all functions ({count}).").format(count=self.total))
+            print(_("Gepetto renaming variables {current}/{total}").format(current=self.total, total=self.total))
+            return
+        ea = self.functions.pop(0)
+        self.current += 1
+        if self.current == 1 or self.current % 10 == 0:
+            print(_("Gepetto renaming variables {current}/{total}").format(current=self.current, total=self.total))
+        try:
+            decompiler_output = ida_hexrays.decompile(ea)
+        except ida_hexrays.DecompilationFailure:
+            print(_("Failed to decompile function at {address:#x}, skipping.").format(address=ea))
+            self._rename_next()
+            return
+
+        gepetto.config.model.query_model_async(
+            _("Analyze the following C function:\n{decompiler_output}"\
+              "\nSuggest better variable names, reply with a JSON array where keys are the original"\
+              " names and values are the proposed names. Do not explain anything, only print the "\
+              "JSON dictionary.").format(decompiler_output=str(decompiler_output)),
+            functools.partial(self._cb, address=ea),
+            additional_model_options={"response_format": {"type": "json_object"}}
+        )
+
+    def _cb(self, response, address):
+        rename_callback(address=address, view=None, response=response)
+        self._rename_next()
+
     def update(self, ctx):
         return idaapi.AST_ENABLE_ALWAYS
 
