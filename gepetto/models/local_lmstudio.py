@@ -59,7 +59,7 @@ class LMStudio(GPT):
             ) if proxy else None
         )
 
-    def query_model(self, query, cb, additional_model_options=None):
+    def query_model(self, query, cb, stream=False, additional_model_options=None):
         if additional_model_options is not None and additional_model_options.get("response_format", {}).get("type") == "json_object":
             additional_model_options.update({
                 "response_format": {
@@ -74,7 +74,7 @@ class LMStudio(GPT):
         else:
             additional_model_options = {}
 
-        super().query_model(query, cb, additional_model_options)
+        super().query_model(query, cb, stream, additional_model_options)
 
     # -----------------------------------------------------------------------------
 
