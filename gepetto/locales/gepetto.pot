@@ -41,8 +41,14 @@ msgstr "Use {model} to rename this function's variables"
 msgid "Rename variables in all functions using {model}"
 msgstr "Rename variables in all functions using {model}"
 
-msgid "Finished renaming variables for all functions."
-msgstr "Finished renaming variables for all functions."
+msgid "Starting variable renaming for {count} functions..."
+msgstr "Starting variable renaming for {count} functions..."
+
+msgid "Finished renaming variables for all functions ({count})."
+msgstr "Finished renaming variables for all functions ({count})."
+
+msgid "{current}/{total}"
+msgstr "{current}/{total}"
 
 msgid "Failed to decompile function at {address:#x}, skipping."
 msgstr "Failed to decompile function at {address:#x}, skipping."

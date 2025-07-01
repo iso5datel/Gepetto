@@ -169,14 +169,21 @@ class RenameAllHandler(idaapi.action_handler_t):
 
     def activate(self, ctx):
         self.functions = list(idautils.Functions())
+        self.total = len(self.functions)
+        self.current = 0
+        print(_("Starting variable renaming for {count} functions...").format(count=self.total))
         self._rename_next()
         return 1
 
     def _rename_next(self):
         if not self.functions:
-            print(_("Finished renaming variables for all functions."))
+            print(_("Finished renaming variables for all functions ({count}).").format(count=self.total))
+            print(f"{self.total}/{self.total}")
             return
         ea = self.functions.pop(0)
+        self.current += 1
+        if self.current == 1 or self.current % 10 == 0:
+            print(f"{self.current}/{self.total}")
         try:
             decompiler_output = ida_hexrays.decompile(ea)
         except ida_hexrays.DecompilationFailure:
