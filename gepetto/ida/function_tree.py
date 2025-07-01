@@ -3,6 +3,10 @@ import idaapi
 import ida_kernwin
 import ida_hexrays
 
+import functools
+import gepetto.config
+from gepetto.ida.handlers import rename_callback
+
 try:
     from PyQt5 import QtWidgets, QtCore
 except Exception:
@@ -74,33 +78,41 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         if not item:
             return
         menu = QtWidgets.QMenu(self.tree)
-        act_decompile = menu.addAction("Decompile")
-        act_decompile_children = menu.addAction("Decompile With Children")
+        act_rename = menu.addAction("Rename variables")
+        act_rename_children = menu.addAction("Rename variables With Children")
         action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
-        if action == act_decompile:
-            self._decompile_item(item, recurse=False)
-        elif action == act_decompile_children:
-            self._decompile_item(item, recurse=True)
+        if action == act_rename:
+            self._rename_item(item, recurse=False)
+        elif action == act_rename_children:
+            self._rename_item(item, recurse=True)
         self._populate_tree()
 
     # ------------------------------------------------------------------
-    def _decompile_item(self, item, recurse: bool):
+    def _rename_item(self, item, recurse: bool):
         ea = item.data(0, QtCore.Qt.UserRole)
         if ea is None:
             return
         try:
-            # Open the pseudocode view for the function to ensure the
-            # decompilation visibly runs.
-            ida_hexrays.open_pseudocode(ea, 0)
-        except Exception:
-            # Fallback to silent decompilation if opening failed.
-            try:
-                ida_hexrays.decompile(ea)
-            except Exception:
-                pass
+            decompiler_output = ida_hexrays.decompile(ea)
+        except ida_hexrays.DecompilationFailure:
+            print(gepetto.config._(
+                "Failed to decompile function at {address:#x}, skipping.").format(
+                address=ea))
+        else:
+            gepetto.config.model.query_model_async(
+                gepetto.config._(
+                    "Analyze the following C function:\n{decompiler_output}"\
+                    "\nSuggest better variable names, reply with a JSON array where keys are the original"\
+                    " names and values are the proposed names. Do not explain anything, only print the "\
+                    "JSON dictionary.").format(decompiler_output=str(decompiler_output)),
+                functools.partial(rename_callback, address=ea, view=None),
+                additional_model_options={"response_format": {"type": "json_object"}},
+            )
+            print(gepetto.config._("Request to {model} sent...").format(
+                model=str(gepetto.config.model)))
         if recurse:
             for i in range(item.childCount()):
-                self._decompile_item(item.child(i), True)
+                self._rename_item(item.child(i), True)
 
     # ------------------------------------------------------------------
     def Show(self, caption, options=0):
