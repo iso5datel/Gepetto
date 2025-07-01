@@ -10,6 +10,7 @@ import ida_kernwin
 import gepetto.config
 from gepetto.ida.handlers import ExplainHandler, RenameHandler, RenameAllHandler, SwapModelHandler, GenerateCCodeHandler, GeneratePythonCodeHandler
 from gepetto.ida.cli import register_cli
+from gepetto.ida.function_tree import GenerateFunctionsTreeHandler
 import gepetto.models.model_manager
 
 _ = gepetto.config._
@@ -31,6 +32,8 @@ class GepettoPlugin(idaapi.plugin_t):
     c_code_menu_path = "Edit/Gepetto/" + _("Generate C Code")
     python_code_action_name = "gepetto:generate_python_code"
     python_code_menu_path = "Edit/Gepetto/" + _("Generate Python Code")
+    functions_tree_action_name = "gepetto:generate_functions_tree"
+    functions_tree_menu_path = "Edit/Gepetto/" + _("Generate Functions Tree")
     wanted_name = 'Gepetto'
     wanted_hotkey = ''
     comment = _("Uses {model} to enrich the decompiler's output").format(model=str(gepetto.config.model))
@@ -94,6 +97,17 @@ class GepettoPlugin(idaapi.plugin_t):
         )
         idaapi.register_action(generate_python_code_action)
 
+        # Generate Functions Tree action
+        generate_functions_tree_action = idaapi.action_desc_t(
+            self.functions_tree_action_name,
+            _('Generate Functions Tree'),
+            GenerateFunctionsTreeHandler(),
+            '',
+            _('Show a tree of functions starting from the current one'),
+            300
+        )
+        idaapi.register_action(generate_functions_tree_action)
+
         # Generate C Code action
         generate_c_code_action = idaapi.action_desc_t(
             self.c_code_action_name,
@@ -112,6 +126,7 @@ class GepettoPlugin(idaapi.plugin_t):
         idaapi.attach_action_to_menu(self.rename_all_menu_path, self.rename_all_action_name, idaapi.SETMENU_APP)
         idaapi.attach_action_to_menu(self.c_code_menu_path, self.c_code_action_name, idaapi.SETMENU_APP)
         idaapi.attach_action_to_menu(self.python_code_menu_path, self.python_code_action_name, idaapi.SETMENU_APP)
+        idaapi.attach_action_to_menu(self.functions_tree_menu_path, self.functions_tree_action_name, idaapi.SETMENU_APP)
 
         self.generate_model_select_menu()
 
@@ -204,4 +219,5 @@ class ContextMenuHooks(idaapi.UI_Hooks):
             idaapi.attach_action_to_popup(form, popup, GepettoPlugin.rename_all_action_name, "Gepetto/")
             idaapi.attach_action_to_popup(form, popup, GepettoPlugin.c_code_action_name, "Gepetto/")
             idaapi.attach_action_to_popup(form, popup, GepettoPlugin.python_code_action_name, "Gepetto/")
+            idaapi.attach_action_to_popup(form, popup, GepettoPlugin.functions_tree_action_name, "Gepetto/")
 
