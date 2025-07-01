@@ -44,8 +44,6 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         root = self._build_tree(self.tree.invisibleRootItem(), self.start_ea, set())
         if root is not None:
             root.setExpanded(True)
-            for i in range(root.childCount()):
-                root.child(i).setExpanded(True)
 
     # ------------------------------------------------------------------
     def _build_tree(self, parent, ea, visited):
@@ -83,22 +81,22 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         if not item:
             return
         menu = QtWidgets.QMenu(self.tree)
-        act_rename = menu.addAction("Rename variables")
-        act_rename_children = menu.addAction("Rename variables With Children")
-        menu.addSeparator()
         act_collapse = menu.addAction("Collapse")
         act_uncollapse = menu.addAction("Uncollapse")
+        menu.addSeparator()
+        act_rename = menu.addAction("Rename variables")
+        act_rename_children = menu.addAction("Rename variables With Children")
         action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
         if action == act_rename or action == act_rename_children:
             selected = self.tree.selectedItems()
             targets = selected if selected else [item]
             for sel in targets:
                 self._rename_item(sel, recurse=action == act_rename_children)
+            self._populate_tree()
         elif action == act_collapse:
             item.setExpanded(False)
         elif action == act_uncollapse:
             item.setExpanded(True)
-        self._populate_tree()
 
     # ------------------------------------------------------------------
     def _rename_item(self, item, recurse: bool):
