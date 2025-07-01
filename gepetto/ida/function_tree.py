@@ -89,9 +89,15 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         if ea is None:
             return
         try:
-            ida_hexrays.decompile(ea)
+            # Open the pseudocode view for the function to ensure the
+            # decompilation visibly runs.
+            ida_hexrays.open_pseudocode(ea, 0)
         except Exception:
-            pass
+            # Fallback to silent decompilation if opening failed.
+            try:
+                ida_hexrays.decompile(ea)
+            except Exception:
+                pass
         if recurse:
             for i in range(item.childCount()):
                 self._decompile_item(item.child(i), True)
