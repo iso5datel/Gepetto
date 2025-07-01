@@ -10,7 +10,7 @@ import ida_kernwin
 import gepetto.config
 from gepetto.ida.handlers import ExplainHandler, RenameHandler, RenameAllHandler, SwapModelHandler, GenerateCCodeHandler, GeneratePythonCodeHandler
 from gepetto.ida.cli import register_cli
-from gepetto.ida.function_tree import FunctionTreeForm, GenerateFunctionsTreeHandler
+from gepetto.ida.function_tree import GenerateFunctionsTreeHandler
 import gepetto.models.model_manager
 
 _ = gepetto.config._
