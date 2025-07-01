@@ -47,8 +47,8 @@ msgstr "Starting variable renaming for {count} functions..."
 msgid "Finished renaming variables for all functions ({count})."
 msgstr "Finished renaming variables for all functions ({count})."
 
-msgid "{current}/{total}"
-msgstr "{current}/{total}"
+msgid "Gepetto renaming variables {current}/{total}"
+msgstr "Gepetto renaming variables {current}/{total}"
 
 msgid "Failed to decompile function at {address:#x}, skipping."
 msgstr "Failed to decompile function at {address:#x}, skipping."
