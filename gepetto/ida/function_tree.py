@@ -39,11 +39,15 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         self._populate_tree()
 
     # ------------------------------------------------------------------
-    def _populate_tree(self):
+    def _populate_tree(self, expanded=None):
+        """Build or rebuild the tree, restoring expansion state if provided."""
         self.tree.clear()
         root = self._build_tree(self.tree.invisibleRootItem(), self.start_ea, set())
         if root is not None:
-            root.setExpanded(True)
+            if expanded is None:
+                root.setExpanded(True)
+            if expanded:
+                self._restore_expanded_items(root, expanded)
 
     # ------------------------------------------------------------------
     def _build_tree(self, parent, ea, visited):
@@ -56,6 +60,28 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         for child_ea in self._get_called_functions(ea):
             self._build_tree(item, child_ea, visited)
         return item
+
+    # ------------------------------------------------------------------
+    def _collect_expanded_items(self, item=None, result=None):
+        """Return a set of addresses for all expanded items."""
+        if result is None:
+            result = set()
+        if item is None:
+            item = self.tree.invisibleRootItem()
+        ea = item.data(0, QtCore.Qt.UserRole)
+        if item != self.tree.invisibleRootItem() and item.isExpanded() and ea is not None:
+            result.add(ea)
+        for i in range(item.childCount()):
+            self._collect_expanded_items(item.child(i), result)
+        return result
+
+    # ------------------------------------------------------------------
+    def _restore_expanded_items(self, item, expanded):
+        ea = item.data(0, QtCore.Qt.UserRole)
+        if ea in expanded:
+            item.setExpanded(True)
+        for i in range(item.childCount()):
+            self._restore_expanded_items(item.child(i), expanded)
 
     # ------------------------------------------------------------------
     @staticmethod
@@ -83,20 +109,39 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         menu = QtWidgets.QMenu(self.tree)
         act_collapse = menu.addAction("Collapse")
         act_uncollapse = menu.addAction("Uncollapse")
+        act_collapse_all = menu.addAction("Collapse All")
+        act_uncollapse_all = menu.addAction("Uncollapse All")
         menu.addSeparator()
         act_rename = menu.addAction("Rename variables")
         act_rename_children = menu.addAction("Rename variables With Children")
         action = menu.exec_(self.tree.viewport().mapToGlobal(pos))
         if action == act_rename or action == act_rename_children:
+            expanded = self._collect_expanded_items()
             selected = self.tree.selectedItems()
             targets = selected if selected else [item]
             for sel in targets:
                 self._rename_item(sel, recurse=action == act_rename_children)
-            self._populate_tree()
+            self._populate_tree(expanded)
         elif action == act_collapse:
-            item.setExpanded(False)
+            selected = self.tree.selectedItems()
+            targets = selected if selected else [item]
+            for sel in targets:
+                sel.setExpanded(False)
         elif action == act_uncollapse:
-            item.setExpanded(True)
+            selected = self.tree.selectedItems()
+            targets = selected if selected else [item]
+            for sel in targets:
+                sel.setExpanded(True)
+        elif action == act_collapse_all:
+            selected = self.tree.selectedItems()
+            targets = selected if selected else [item]
+            for sel in targets:
+                self._collapse_recursively(sel)
+        elif action == act_uncollapse_all:
+            selected = self.tree.selectedItems()
+            targets = selected if selected else [item]
+            for sel in targets:
+                self._uncollapse_recursively(sel)
 
     # ------------------------------------------------------------------
     def _rename_item(self, item, recurse: bool):
@@ -124,6 +169,18 @@ class FunctionTreeForm(ida_kernwin.PluginForm):
         if recurse:
             for i in range(item.childCount()):
                 self._rename_item(item.child(i), True)
+
+    # ------------------------------------------------------------------
+    def _collapse_recursively(self, item):
+        item.setExpanded(False)
+        for i in range(item.childCount()):
+            self._collapse_recursively(item.child(i))
+
+    # ------------------------------------------------------------------
+    def _uncollapse_recursively(self, item):
+        item.setExpanded(True)
+        for i in range(item.childCount()):
+            self._uncollapse_recursively(item.child(i))
 
     # ------------------------------------------------------------------
     def Show(self, caption, options=0):
